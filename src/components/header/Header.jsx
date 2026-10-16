@@ -4,7 +4,7 @@ import CTA from './CTA'
 import ME from '../../assets/adib.png'
 import HeaderSocials from './HeaderSocials'
 
-function Header() {
+function Header({ onNavigateUiUx }) {
   return (
     <header>
       <div className="container header__container">
@@ -13,7 +13,7 @@ function Header() {
         <h5 className="text-light">
           Junior Front-End Developer & UI/UX Designer
         </h5>
-        <CTA />
+        <CTA onNavigateUiUx={onNavigateUiUx} />
         <HeaderSocials />
 
         <div className="me">
