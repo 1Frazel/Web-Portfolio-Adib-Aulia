@@ -19,7 +19,7 @@ import RECIPEEZ_P2 from '../../assets/ui-ux/Recipeez - page 2.png';
 import RAISO_IMG from '../../assets/RAISO.png';
 
 import { AiOutlineArrowLeft } from 'react-icons/ai';
-import { BsLinkedin } from 'react-icons/bs';
+import { BsLinkedin, BsSunFill, BsMoonStarsFill } from 'react-icons/bs';
 import {
   FaRegCheckCircle,
   FaExternalLinkAlt,
@@ -121,6 +121,13 @@ const CV_TOOLS_AND_TECHNIQUES = [
 
 function UiUxPage({ onNavigateMain }) {
   const [lightbox, setLightbox] = useState({ open: false, items: [], index: 0 });
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    try {
+      return localStorage.getItem('uiux-theme') === 'dark';
+    } catch {
+      return false;
+    }
+  });
   const formRef = useRef();
 
   useEffect(() => {
@@ -128,8 +135,18 @@ function UiUxPage({ onNavigateMain }) {
     window.scrollTo({ top: 0, behavior: 'instant' });
     return () => {
       document.body.classList.remove('uiux-mode');
+      document.body.classList.remove('uiux-dark');
     };
   }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle('uiux-dark', isDarkMode);
+    try {
+      localStorage.setItem('uiux-theme', isDarkMode ? 'dark' : 'light');
+    } catch {
+      // ignore storage errors
+    }
+  }, [isDarkMode]);
 
   useEffect(() => {
     function handleKeyDown(e) {
@@ -217,6 +234,16 @@ function UiUxPage({ onNavigateMain }) {
           </div>
 
           <div className="uiux-topbar__actions">
+            <button
+              type="button"
+              onClick={() => setIsDarkMode((prev) => !prev)}
+              className="uiux-theme-btn"
+              title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              aria-label={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {isDarkMode ? <BsSunFill /> : <BsMoonStarsFill />}
+              <span>{isDarkMode ? 'Light' : 'Dark'}</span>
+            </button>
             <button type="button" onClick={onNavigateMain} className="uiux-switch-btn">
               <AiOutlineArrowLeft /> Main Dev Portfolio
             </button>
@@ -268,8 +295,7 @@ function UiUxPage({ onNavigateMain }) {
                     {CV_TOOLS_AND_TECHNIQUES.map((tool) => (
                       <span
                         key={tool}
-                        className="uiux-pill"
-                        style={{ padding: '0.26rem 0.68rem', fontSize: '0.75rem', background: '#fff' }}
+                        className="uiux-pill uiux-pill--tool"
                       >
                         {tool}
                       </span>
