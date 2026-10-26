@@ -12,6 +12,11 @@ import IMG7 from '../../assets/Resumeez.png';
 
 import { Pagination } from 'swiper/modules';
 import { Swiper, SwiperSlide } from 'swiper/react';
+import {
+  trackEvent,
+  useCarouselSlideTracker,
+  useSectionReadingTracker,
+} from '../../utils/analytics';
 
 import 'swiper/css';
 import 'swiper/css/pagination';
@@ -28,7 +33,23 @@ const data = [
     title: 'Insomnomnomniac',
     skills: 'Skills used: HTML, JavaScript',
     desc: 'A 2D platformer web-based game that challenges player to escape from the labyrinth, dodge the monster and finish the game by reaching bed at the end of labyrinth. This project focuses on interactive gameplay and logic handling using vanilla JavaScript, providing an engaging user experience.',
-    button: <a href="https://1frazel.github.io/MPF-Final-Game/" target="_blank" rel="noopener noreferrer" className="btn btn-primary">Try the game!</a>
+    button: (
+      <a
+        href="https://1frazel.github.io/MPF-Final-Game/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="btn btn-primary"
+        onClick={() =>
+          trackEvent('project_cta_click', {
+            project: 'Insomnomnomniac',
+            label: 'Try the game!',
+            target_url: 'https://1frazel.github.io/MPF-Final-Game/',
+          })
+        }
+      >
+        Try the game!
+      </a>
+    ),
   },
   {
     image: IMG3,
@@ -53,19 +74,83 @@ const data = [
     title: 'Recipeez',
     skills: 'Skills used: Java, UI/UX Design',
     desc: 'A meal planning and recipe-finding app that allows users to input available ingredients and generate recipe suggestions. The app integrates a user-friendly interface with essential Java features to provide an educational experience in real-world API usage.',
-    button: <a href="https://github.com/1Frazel/Recipeez/releases/tag/v0.0.1-alpha" target="_blank" rel="noopener noreferrer" className="btn btn-primary">Download the app!</a>
+    button: (
+      <a
+        href="https://github.com/1Frazel/Recipeez/releases/tag/v0.0.1-alpha"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="btn btn-primary"
+        onClick={() =>
+          trackEvent('project_cta_click', {
+            project: 'Recipeez',
+            label: 'Download the app!',
+            target_url: 'https://github.com/1Frazel/Recipeez/releases/tag/v0.0.1-alpha',
+          })
+        }
+      >
+        Download the app!
+      </a>
+    ),
   },
   {
     image: IMG7,
     title: 'Resumeez',
     skills: 'Skills used: UI/UX Design',
     desc: 'A modern resume builder app that allows users to create professional resumes with ease. The app features a clean, intuitive interface and provides various templates to choose from.',
-    button: <a href="https://portfolio-thesis.firebaseapp.com/" target="_blank" rel="noopener noreferrer" className="btn btn-primary">Try the app!</a>
+    button: (
+      <a
+        href="https://portfolio-thesis.firebaseapp.com/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="btn btn-primary"
+        onClick={() =>
+          trackEvent('project_cta_click', {
+            project: 'Resumeez',
+            label: 'Try the app!',
+            target_url: 'https://portfolio-thesis.firebaseapp.com/',
+          })
+        }
+      >
+        Try the app!
+      </a>
+    ),
   }
 ];
 
 function Project() {
   const [swiperInstance, setSwiperInstance] = useState(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useSectionReadingTracker({
+    sectionId: 'project',
+    sectionName: 'Projects',
+  });
+
+  useCarouselSlideTracker({
+    sectionId: 'project',
+    category: 'project',
+    items: data,
+    activeIndex,
+    engagedThresholdSec: 5,
+  });
+
+  const handlePrev = () => {
+    trackEvent('carousel_nav_click', {
+      carousel: 'projects',
+      direction: 'prev',
+      current_slide_title: data[activeIndex]?.title,
+    });
+    swiperInstance?.slidePrev();
+  };
+
+  const handleNext = () => {
+    trackEvent('carousel_nav_click', {
+      carousel: 'projects',
+      direction: 'next',
+      current_slide_title: data[activeIndex]?.title,
+    });
+    swiperInstance?.slideNext();
+  };
 
   return (
     <section id='project'>
@@ -80,11 +165,12 @@ function Project() {
           clickable: true
         }}
         onSwiper={setSwiperInstance}
+        onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
         modules={[Pagination]}
         className="container project__container">
         <SwiperNav
-          onPrev={() => swiperInstance?.slidePrev()}
-          onNext={() => swiperInstance?.slideNext()}
+          onPrev={handlePrev}
+          onNext={handleNext}
           slot="container-start"
         />
         {

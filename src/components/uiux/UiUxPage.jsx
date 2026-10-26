@@ -36,6 +36,7 @@ import { IoLogoWhatsapp } from 'react-icons/io';
 import emailjs from '@emailjs/browser';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { trackEvent, useSectionReadingTracker } from '../../utils/analytics';
 
 const RESUMEEZ_BOARDS = [
   {
@@ -86,6 +87,14 @@ const RECIPEEZ_BOARDS = [
   },
 ];
 
+const RAISO_BOARDS = [
+  {
+    src: RAISO_IMG,
+    title: 'RAiso — Stationery E-Commerce App (Java, Android Studio, Axure RP)',
+    tag: '01 / 01',
+  },
+];
+
 const WIZARD_STEPS = [
   { step: '01', name: 'Personal Information', active: false },
   { step: '02', name: 'Work Experience', active: false },
@@ -103,7 +112,16 @@ const RECIPEEZ_FIGMA_PROTO =
   'https://www.figma.com/proto/k3CICS4F5GYnR0f3elBDGt/Recipeez-UI-Mockup?node-id=37-2&p=f&t=hcedQNNFzDes10JI-1&scaling=scale-down&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=1%3A4';
 
 function UiUxPage({ onNavigateMain }) {
-  const [lightbox, setLightbox] = useState({ open: false, items: [], index: 0 });
+  const [lightbox, setLightbox] = useState({
+    open: false,
+    items: [],
+    index: 0,
+    project: '',
+  });
+  const lightboxSessionRef = useRef({
+    openedAt: 0,
+    viewedIndices: new Set(),
+  });
   const [isDarkMode, setIsDarkMode] = useState(() => {
     try {
       return localStorage.getItem('uiux-theme') === 'dark';
@@ -112,6 +130,71 @@ function UiUxPage({ onNavigateMain }) {
     }
   });
   const formRef = useRef();
+
+  // Case Study Reading & Dwell Trackers
+  useSectionReadingTracker({
+    sectionId: 'case-resumeez',
+    sectionName: 'Resumeez',
+    eventPrefix: 'case_study',
+    milestones: [15, 30, 60],
+    extraProps: { project: 'Resumeez' },
+  });
+
+  useSectionReadingTracker({
+    sectionId: 'case-kompas',
+    sectionName: 'Kompas.com',
+    eventPrefix: 'case_study',
+    milestones: [15, 30, 60],
+    extraProps: { project: 'Kompas.com' },
+  });
+
+  useSectionReadingTracker({
+    sectionId: 'case-recipeez',
+    sectionName: 'Recipeez',
+    eventPrefix: 'case_study',
+    milestones: [15, 30, 60],
+    extraProps: { project: 'Recipeez' },
+  });
+
+  useSectionReadingTracker({
+    sectionId: 'uiux-more',
+    sectionName: '99 Group & RAiso',
+    eventPrefix: 'case_study',
+    milestones: [15, 30, 60],
+    extraProps: { project: '99 Group & RAiso' },
+  });
+
+  useSectionReadingTracker({
+    sectionId: 'uiux-contact',
+    sectionName: 'UI/UX Contact',
+    eventPrefix: 'section',
+    milestones: [10, 30],
+  });
+
+  // Track when the user scrolls to Resumeez's Testing, Metrics & Iteration Bento Grid
+  useEffect(() => {
+    const metricsEl = document.getElementById('resumeez-metrics-bento');
+    if (!metricsEl || typeof IntersectionObserver === 'undefined') return;
+
+    let hasFired = false;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !hasFired) {
+            hasFired = true;
+            trackEvent('case_study_metrics_viewed', {
+              project: 'Resumeez',
+              subsection: 'Testing, Metrics & Iteration',
+            });
+          }
+        });
+      },
+      { threshold: 0.3 }
+    );
+
+    observer.observe(metricsEl);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     document.body.classList.add('uiux-mode');
@@ -131,63 +214,168 @@ function UiUxPage({ onNavigateMain }) {
     }
   }, [isDarkMode]);
 
+  const recordLightboxClose = (currentLightbox) => {
+    if (!currentLightbox.open || currentLightbox.items.length === 0) return;
+    const dwellSeconds = Math.max(
+      1,
+      Math.round((Date.now() - lightboxSessionRef.current.openedAt) / 1000)
+    );
+    const activeBoard = currentLightbox.items[currentLightbox.index];
+    trackEvent('lightbox_close', {
+      project: currentLightbox.project,
+      last_board_title: activeBoard?.title,
+      last_board_tag: activeBoard?.tag,
+      dwell_seconds: dwellSeconds,
+      slides_viewed_count: lightboxSessionRef.current.viewedIndices.size,
+    });
+  };
+
   useEffect(() => {
     function handleKeyDown(e) {
       if (!lightbox.open) return;
       if (e.key === 'Escape') {
+        recordLightboxClose(lightbox);
         setLightbox((prev) => ({ ...prev, open: false }));
-      } else if (e.key === 'ArrowRight') {
+      } else if (e.key === 'ArrowRight' && lightbox.items.length > 1) {
+        const nextIndex = (lightbox.index + 1) % lightbox.items.length;
+        lightboxSessionRef.current.viewedIndices.add(nextIndex);
+        trackEvent('lightbox_slide_change', {
+          project: lightbox.project,
+          from_index: lightbox.index,
+          to_index: nextIndex,
+          board_title: lightbox.items[nextIndex]?.title,
+          board_tag: lightbox.items[nextIndex]?.tag,
+          direction: 'next',
+          method: 'keyboard',
+        });
         setLightbox((prev) => ({
           ...prev,
-          index: (prev.index + 1) % prev.items.length,
+          index: nextIndex,
         }));
-      } else if (e.key === 'ArrowLeft') {
+      } else if (e.key === 'ArrowLeft' && lightbox.items.length > 1) {
+        const prevIndex = (lightbox.index - 1 + lightbox.items.length) % lightbox.items.length;
+        lightboxSessionRef.current.viewedIndices.add(prevIndex);
+        trackEvent('lightbox_slide_change', {
+          project: lightbox.project,
+          from_index: lightbox.index,
+          to_index: prevIndex,
+          board_title: lightbox.items[prevIndex]?.title,
+          board_tag: lightbox.items[prevIndex]?.tag,
+          direction: 'prev',
+          method: 'keyboard',
+        });
         setLightbox((prev) => ({
           ...prev,
-          index: (prev.index - 1 + prev.items.length) % prev.items.length,
+          index: prevIndex,
         }));
       }
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [lightbox.open]);
+  }, [lightbox]);
 
-  const openLightbox = (items, index) => {
-    setLightbox({ open: true, items, index });
+  const openLightbox = (items, index, projectName) => {
+    lightboxSessionRef.current = {
+      openedAt: Date.now(),
+      viewedIndices: new Set([index]),
+    };
+    const board = items[index];
+    trackEvent('lightbox_open', {
+      project: projectName,
+      board_title: board?.title,
+      board_tag: board?.tag,
+      board_index: index,
+    });
+    setLightbox({ open: true, items, index, project: projectName });
   };
 
   const closeLightbox = () => {
+    recordLightboxClose(lightbox);
     setLightbox((prev) => ({ ...prev, open: false }));
   };
 
   const nextSlide = (e) => {
     e.stopPropagation();
+    const nextIndex = (lightbox.index + 1) % lightbox.items.length;
+    lightboxSessionRef.current.viewedIndices.add(nextIndex);
+    trackEvent('lightbox_slide_change', {
+      project: lightbox.project,
+      from_index: lightbox.index,
+      to_index: nextIndex,
+      board_title: lightbox.items[nextIndex]?.title,
+      board_tag: lightbox.items[nextIndex]?.tag,
+      direction: 'next',
+      method: 'button',
+    });
     setLightbox((prev) => ({
       ...prev,
-      index: (prev.index + 1) % prev.items.length,
+      index: nextIndex,
     }));
   };
 
   const prevSlide = (e) => {
     e.stopPropagation();
+    const prevIndex = (lightbox.index - 1 + lightbox.items.length) % lightbox.items.length;
+    lightboxSessionRef.current.viewedIndices.add(prevIndex);
+    trackEvent('lightbox_slide_change', {
+      project: lightbox.project,
+      from_index: lightbox.index,
+      to_index: prevIndex,
+      board_title: lightbox.items[prevIndex]?.title,
+      board_tag: lightbox.items[prevIndex]?.tag,
+      direction: 'prev',
+      method: 'button',
+    });
     setLightbox((prev) => ({
       ...prev,
-      index: (prev.index - 1 + prev.items.length) % prev.items.length,
+      index: prevIndex,
     }));
+  };
+
+  const handleToggleTheme = () => {
+    const nextDark = !isDarkMode;
+    trackEvent('uiux_theme_toggle', {
+      to_theme: nextDark ? 'dark' : 'light',
+    });
+    setIsDarkMode(nextDark);
+  };
+
+  const handleQuickJump = (sectionHash, label) => {
+    trackEvent('uiux_quick_jump_click', {
+      target_section: sectionHash,
+      label,
+    });
+  };
+
+  const handleDirectoryClick = (projectNum, projectName, targetSection) => {
+    trackEvent('uiux_directory_card_click', {
+      project_num: projectNum,
+      project_name: projectName,
+      target_section: targetSection,
+    });
   };
 
   const handleSendEmail = (e) => {
     e.preventDefault();
+    trackEvent('contact_form_submit', {
+      source: 'uiux_contact',
+    });
     emailjs
       .sendForm('service_1jjdsvk', 'template_83t6kxr', formRef.current, 'qkYHUAd9cmK7BjIFb')
       .then(
         () => {
+          trackEvent('contact_form_success', {
+            source: 'uiux_contact',
+          });
           toast.success('Message sent successfully!', {
             position: 'top-center',
             autoClose: 3000,
           });
         },
         () => {
+          trackEvent('contact_form_error', {
+            source: 'uiux_contact',
+          });
           toast.error('Failed to send the message. Please try again.', {
             position: 'top-center',
             autoClose: 3000,
@@ -208,18 +396,42 @@ function UiUxPage({ onNavigateMain }) {
           </div>
 
           <div className="uiux-quick-jump">
-            <a href="#uiux-hero">Overview</a>
-            <a href="#case-resumeez">01. Resumeez</a>
-            <a href="#case-kompas">02. Kompas.com</a>
-            <a href="#case-recipeez">03. Recipeez</a>
-            <a href="#uiux-more">99 Group &amp; RAiso</a>
-            <a href="#uiux-contact">Contact</a>
+            <a href="#uiux-hero" onClick={() => handleQuickJump('#uiux-hero', 'Overview')}>
+              Overview
+            </a>
+            <a
+              href="#case-resumeez"
+              onClick={() => handleQuickJump('#case-resumeez', '01. Resumeez')}
+            >
+              01. Resumeez
+            </a>
+            <a
+              href="#case-kompas"
+              onClick={() => handleQuickJump('#case-kompas', '02. Kompas.com')}
+            >
+              02. Kompas.com
+            </a>
+            <a
+              href="#case-recipeez"
+              onClick={() => handleQuickJump('#case-recipeez', '03. Recipeez')}
+            >
+              03. Recipeez
+            </a>
+            <a
+              href="#uiux-more"
+              onClick={() => handleQuickJump('#uiux-more', '99 Group & RAiso')}
+            >
+              99 Group &amp; RAiso
+            </a>
+            <a href="#uiux-contact" onClick={() => handleQuickJump('#uiux-contact', 'Contact')}>
+              Contact
+            </a>
           </div>
 
           <div className="uiux-topbar__actions">
             <button
               type="button"
-              onClick={() => setIsDarkMode((prev) => !prev)}
+              onClick={handleToggleTheme}
               className="uiux-theme-btn"
               title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               aria-label={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
@@ -255,13 +467,42 @@ function UiUxPage({ onNavigateMain }) {
               </p>
 
               <div className="uiux-cta-row">
-                <a href="#case-resumeez" className="uiux-btn uiux-btn--primary">
+                <a
+                  href="#case-resumeez"
+                  className="uiux-btn uiux-btn--primary"
+                  onClick={() =>
+                    trackEvent('uiux_hero_cta_click', {
+                      label: 'Explore Case Studies',
+                      target_section: '#case-resumeez',
+                    })
+                  }
+                >
                   Explore Case Studies
                 </a>
-                <a href={LATEST_CV} download className="uiux-btn uiux-btn--secondary">
+                <a
+                  href={LATEST_CV}
+                  download
+                  className="uiux-btn uiux-btn--secondary"
+                  onClick={() =>
+                    trackEvent('cv_download_click', {
+                      source: 'uiux_hero',
+                      file_name: 'CV M ADIB AULIA NURKHAFIF.pdf',
+                    })
+                  }
+                >
                   <FaDownload /> Download CV
                 </a>
-                <a href={PORTFOLIO_PDF} download className="uiux-btn uiux-btn--secondary">
+                <a
+                  href={PORTFOLIO_PDF}
+                  download
+                  className="uiux-btn uiux-btn--secondary"
+                  onClick={() =>
+                    trackEvent('portfolio_pdf_download_click', {
+                      source: 'uiux_hero',
+                      file_name: 'Portfolio of Projects_M Adib Aulia Nurkhafif.pdf',
+                    })
+                  }
+                >
                   <FaDownload /> Portfolio of Works (PDF)
                 </a>
               </div>
@@ -300,6 +541,12 @@ function UiUxPage({ onNavigateMain }) {
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{ color: 'var(--uiux-blue-kicker)', fontWeight: 600 }}
+                      onClick={() =>
+                        trackEvent('social_click', {
+                          platform: 'linkedin',
+                          location: 'uiux_hero_aside',
+                        })
+                      }
                     >
                       LinkedIn ↗
                     </a>
@@ -308,6 +555,12 @@ function UiUxPage({ onNavigateMain }) {
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{ color: 'var(--uiux-blue-kicker)', fontWeight: 600 }}
+                      onClick={() =>
+                        trackEvent('social_click', {
+                          platform: 'github',
+                          location: 'uiux_hero_aside',
+                        })
+                      }
                     >
                       GitHub ↗
                     </a>
@@ -332,22 +585,40 @@ function UiUxPage({ onNavigateMain }) {
       {/* OPEN CASE STUDY DIRECTORY STRIP */}
       <div className="uiux-container">
         <div className="uiux-index-strip">
-          <a href="#case-resumeez" className="uiux-index-item">
+          <a
+            href="#case-resumeez"
+            className="uiux-index-item"
+            onClick={() => handleDirectoryClick('Project 01', 'Resumeez', '#case-resumeez')}
+          >
             <span className="uiux-index-item__num">Project 01</span>
             <strong>Resumeez</strong>
             <span>ATS Resume Builder &amp; Rule-Based Evaluator</span>
           </a>
-          <a href="#case-kompas" className="uiux-index-item">
+          <a
+            href="#case-kompas"
+            className="uiux-index-item"
+            onClick={() => handleDirectoryClick('Project 02', 'Kompas.com', '#case-kompas')}
+          >
             <span className="uiux-index-item__num">Project 02</span>
             <strong>Kompas.com</strong>
             <span>UX Research &amp; News Portal Redesign</span>
           </a>
-          <a href="#case-recipeez" className="uiux-index-item">
+          <a
+            href="#case-recipeez"
+            className="uiux-index-item"
+            onClick={() => handleDirectoryClick('Project 03', 'Recipeez', '#case-recipeez')}
+          >
             <span className="uiux-index-item__num">Project 03</span>
             <strong>Recipeez</strong>
             <span>API-Driven Recipe Finder &amp; Smart Meal Planner</span>
           </a>
-          <a href="#uiux-more" className="uiux-index-item">
+          <a
+            href="#uiux-more"
+            className="uiux-index-item"
+            onClick={() =>
+              handleDirectoryClick('Experience & More', '99 Group & RAiso', '#uiux-more')
+            }
+          >
             <span className="uiux-index-item__num">Experience &amp; More</span>
             <strong>99 Group &amp; RAiso</strong>
             <span>Frontend Engineering Internship &amp; Stationery App</span>
@@ -379,6 +650,13 @@ function UiUxPage({ onNavigateMain }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="uiux-btn uiux-btn--primary"
+                  onClick={() =>
+                    trackEvent('case_study_cta_click', {
+                      project: 'Resumeez',
+                      label: 'Live Web App',
+                      target_url: 'https://portfolio-thesis.firebaseapp.com/',
+                    })
+                  }
                 >
                   Live Web App <FaExternalLinkAlt />
                 </a>
@@ -497,10 +775,10 @@ function UiUxPage({ onNavigateMain }) {
               <div className="resumeez-visual-stack">
                 <div
                   className="showcase-stage"
-                  onClick={() => openLightbox(RESUMEEZ_BOARDS, 0)}
+                  onClick={() => openLightbox(RESUMEEZ_BOARDS, 0, 'Resumeez')}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && openLightbox(RESUMEEZ_BOARDS, 0)}
+                  onKeyDown={(e) => e.key === 'Enter' && openLightbox(RESUMEEZ_BOARDS, 0, 'Resumeez')}
                 >
                   <img src={RESUMEEZ_P1} alt={RESUMEEZ_BOARDS[0].title} />
                   <div className="showcase-stage__bar">
@@ -513,10 +791,10 @@ function UiUxPage({ onNavigateMain }) {
 
                 <div
                   className="showcase-stage"
-                  onClick={() => openLightbox(RESUMEEZ_BOARDS, 1)}
+                  onClick={() => openLightbox(RESUMEEZ_BOARDS, 1, 'Resumeez')}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && openLightbox(RESUMEEZ_BOARDS, 1)}
+                  onKeyDown={(e) => e.key === 'Enter' && openLightbox(RESUMEEZ_BOARDS, 1, 'Resumeez')}
                 >
                   <img src={RESUMEEZ_P2} alt={RESUMEEZ_BOARDS[1].title} />
                   <div className="showcase-stage__bar">
@@ -550,7 +828,7 @@ function UiUxPage({ onNavigateMain }) {
             </div>
 
             {/* Intentional Bento Grid Strictly for Quick Impact / Metrics & Testing Summary */}
-            <div className="open-block" style={{ marginBottom: 0 }}>
+            <div id="resumeez-metrics-bento" className="open-block" style={{ marginBottom: 0 }}>
               <span className="open-block__label open-block__label--accent">
                 Testing, Metrics &amp; Iteration
               </span>
@@ -620,10 +898,10 @@ function UiUxPage({ onNavigateMain }) {
                 <div className="metrics-bento__span-7">
                   <div
                     className="showcase-stage"
-                    onClick={() => openLightbox(RESUMEEZ_BOARDS, 2)}
+                    onClick={() => openLightbox(RESUMEEZ_BOARDS, 2, 'Resumeez')}
                     role="button"
                     tabIndex={0}
-                    onKeyDown={(e) => e.key === 'Enter' && openLightbox(RESUMEEZ_BOARDS, 2)}
+                    onKeyDown={(e) => e.key === 'Enter' && openLightbox(RESUMEEZ_BOARDS, 2, 'Resumeez')}
                   >
                     <img src={RESUMEEZ_P3} alt={RESUMEEZ_BOARDS[2].title} />
                     <div className="showcase-stage__bar">
@@ -639,10 +917,10 @@ function UiUxPage({ onNavigateMain }) {
                 <div className="metrics-bento__span-12">
                   <div
                     className="showcase-stage"
-                    onClick={() => openLightbox(RESUMEEZ_BOARDS, 3)}
+                    onClick={() => openLightbox(RESUMEEZ_BOARDS, 3, 'Resumeez')}
                     role="button"
                     tabIndex={0}
-                    onKeyDown={(e) => e.key === 'Enter' && openLightbox(RESUMEEZ_BOARDS, 3)}
+                    onKeyDown={(e) => e.key === 'Enter' && openLightbox(RESUMEEZ_BOARDS, 3, 'Resumeez')}
                   >
                     <img src={RESUMEEZ_P4} alt={RESUMEEZ_BOARDS[3].title} />
                     <div className="showcase-stage__bar">
@@ -681,6 +959,13 @@ function UiUxPage({ onNavigateMain }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="uiux-btn uiux-btn--primary"
+                  onClick={() =>
+                    trackEvent('case_study_cta_click', {
+                      project: 'Kompas.com',
+                      label: 'Interactive Figma Prototype',
+                      target_url: KOMPAS_FIGMA_PROTO,
+                    })
+                  }
                 >
                   <FaFigma /> Interactive Figma Prototype <FaExternalLinkAlt />
                 </a>
@@ -710,10 +995,10 @@ function UiUxPage({ onNavigateMain }) {
             <div className="dual-visual-stage">
               <div
                 className="showcase-stage"
-                onClick={() => openLightbox(KOMPAS_BOARDS, 0)}
+                onClick={() => openLightbox(KOMPAS_BOARDS, 0, 'Kompas.com')}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && openLightbox(KOMPAS_BOARDS, 0)}
+                onKeyDown={(e) => e.key === 'Enter' && openLightbox(KOMPAS_BOARDS, 0, 'Kompas.com')}
               >
                 <img src={KOMPAS_P1} alt={KOMPAS_BOARDS[0].title} />
                 <div className="showcase-stage__bar">
@@ -726,10 +1011,10 @@ function UiUxPage({ onNavigateMain }) {
 
               <div
                 className="showcase-stage"
-                onClick={() => openLightbox(KOMPAS_BOARDS, 1)}
+                onClick={() => openLightbox(KOMPAS_BOARDS, 1, 'Kompas.com')}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && openLightbox(KOMPAS_BOARDS, 1)}
+                onKeyDown={(e) => e.key === 'Enter' && openLightbox(KOMPAS_BOARDS, 1, 'Kompas.com')}
               >
                 <img src={KOMPAS_P2} alt={KOMPAS_BOARDS[1].title} />
                 <div className="showcase-stage__bar">
@@ -854,6 +1139,13 @@ function UiUxPage({ onNavigateMain }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="uiux-btn uiux-btn--primary"
+                  onClick={() =>
+                    trackEvent('case_study_cta_click', {
+                      project: 'Recipeez',
+                      label: 'Interactive Figma Prototype',
+                      target_url: RECIPEEZ_FIGMA_PROTO,
+                    })
+                  }
                 >
                   <FaFigma /> Interactive Figma Prototype <FaExternalLinkAlt />
                 </a>
@@ -862,6 +1154,13 @@ function UiUxPage({ onNavigateMain }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="uiux-btn uiux-btn--secondary"
+                  onClick={() =>
+                    trackEvent('case_study_cta_click', {
+                      project: 'Recipeez',
+                      label: 'Early Access App',
+                      target_url: 'https://github.com/1Frazel/Recipeez/releases/tag/v0.0.1-alpha',
+                    })
+                  }
                 >
                   Early Access App <FaExternalLinkAlt />
                 </a>
@@ -891,10 +1190,10 @@ function UiUxPage({ onNavigateMain }) {
             <div className="dual-visual-stage" style={{ marginBottom: 0 }}>
               <div
                 className="showcase-stage"
-                onClick={() => openLightbox(RECIPEEZ_BOARDS, 0)}
+                onClick={() => openLightbox(RECIPEEZ_BOARDS, 0, 'Recipeez')}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && openLightbox(RECIPEEZ_BOARDS, 0)}
+                onKeyDown={(e) => e.key === 'Enter' && openLightbox(RECIPEEZ_BOARDS, 0, 'Recipeez')}
               >
                 <img src={RECIPEEZ_P1} alt={RECIPEEZ_BOARDS[0].title} />
                 <div className="showcase-stage__bar">
@@ -907,10 +1206,10 @@ function UiUxPage({ onNavigateMain }) {
 
               <div
                 className="showcase-stage"
-                onClick={() => openLightbox(RECIPEEZ_BOARDS, 1)}
+                onClick={() => openLightbox(RECIPEEZ_BOARDS, 1, 'Recipeez')}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && openLightbox(RECIPEEZ_BOARDS, 1)}
+                onKeyDown={(e) => e.key === 'Enter' && openLightbox(RECIPEEZ_BOARDS, 1, 'Recipeez')}
               >
                 <img src={RECIPEEZ_P2} alt={RECIPEEZ_BOARDS[1].title} />
                 <div className="showcase-stage__bar">
@@ -1094,33 +1393,10 @@ function UiUxPage({ onNavigateMain }) {
 
                 <div
                   className="showcase-stage"
-                  onClick={() =>
-                    openLightbox(
-                      [
-                        {
-                          src: RAISO_IMG,
-                          title: 'RAiso — Stationery E-Commerce App (Java, Android Studio, Axure RP)',
-                          tag: '01 / 01',
-                        },
-                      ],
-                      0
-                    )
-                  }
+                  onClick={() => openLightbox(RAISO_BOARDS, 0, 'RAiso')}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(e) =>
-                    e.key === 'Enter' &&
-                    openLightbox(
-                      [
-                        {
-                          src: RAISO_IMG,
-                          title: 'RAiso — Stationery E-Commerce App (Java, Android Studio, Axure RP)',
-                          tag: '01 / 01',
-                        },
-                      ],
-                      0
-                    )
-                  }
+                  onKeyDown={(e) => e.key === 'Enter' && openLightbox(RAISO_BOARDS, 0, 'RAiso')}
                 >
                   <img src={RAISO_IMG} alt="RAiso Stationery E-Commerce App" />
                   <div className="showcase-stage__bar">
@@ -1157,6 +1433,12 @@ function UiUxPage({ onNavigateMain }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="contact-link-row"
+                    onClick={() =>
+                      trackEvent('contact_direct_click', {
+                        source: 'uiux_contact',
+                        channel: 'email',
+                      })
+                    }
                   >
                     <span>
                       <MdEmail style={{ color: 'var(--uiux-blue-kicker)', fontSize: '1.2rem' }} />
@@ -1170,6 +1452,12 @@ function UiUxPage({ onNavigateMain }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="contact-link-row"
+                    onClick={() =>
+                      trackEvent('contact_direct_click', {
+                        source: 'uiux_contact',
+                        channel: 'whatsapp',
+                      })
+                    }
                   >
                     <span>
                       <IoLogoWhatsapp
@@ -1185,6 +1473,12 @@ function UiUxPage({ onNavigateMain }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="contact-link-row"
+                    onClick={() =>
+                      trackEvent('contact_direct_click', {
+                        source: 'uiux_contact',
+                        channel: 'linkedin',
+                      })
+                    }
                   >
                     <span>
                       <BsLinkedin style={{ color: 'var(--uiux-blue-kicker)', fontSize: '1.1rem' }} />
@@ -1198,6 +1492,12 @@ function UiUxPage({ onNavigateMain }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="contact-link-row"
+                    onClick={() =>
+                      trackEvent('contact_direct_click', {
+                        source: 'uiux_contact',
+                        channel: 'github',
+                      })
+                    }
                   >
                     <span>
                       <FaGithub style={{ color: 'var(--uiux-blue-kicker)', fontSize: '1.15rem' }} />

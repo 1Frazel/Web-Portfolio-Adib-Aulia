@@ -1,8 +1,14 @@
 import React from 'react'
 import './experience.css'
 import {BsFillPatchCheckFill} from 'react-icons/bs'
+import { useSectionReadingTracker } from '../../utils/analytics'
 
 function Experience() {
+  useSectionReadingTracker({
+    sectionId: 'experience',
+    sectionName: 'My Skills',
+  })
+
   return (
     <section id='experience'>
       <h5>Things That I Know</h5>

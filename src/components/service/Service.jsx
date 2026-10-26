@@ -1,8 +1,14 @@
 import React from 'react'
 import './service.css'
 import { FaRegCheckCircle } from "react-icons/fa";
+import { useSectionReadingTracker } from '../../utils/analytics'
 
 const Service = () => {
+  useSectionReadingTracker({
+    sectionId: 'service',
+    sectionName: 'Services',
+  })
+
   return (
     <section id='service'>
       <h5>Things That I will do</h5>

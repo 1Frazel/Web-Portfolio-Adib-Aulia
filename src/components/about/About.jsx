@@ -8,8 +8,14 @@ import {BsLinkedin} from 'react-icons/bs'
 import {BsInstagram} from 'react-icons/bs'
 import {BsFacebook} from 'react-icons/bs'
 import { FaGithub } from "react-icons/fa";
+import { trackEvent, useSectionReadingTracker } from '../../utils/analytics'
 
 function About() {
+  useSectionReadingTracker({
+    sectionId: 'about',
+    sectionName: 'About Me',
+  })
+
   return (
     <section id='about'>
       <h5>Get To Know</h5>
@@ -70,10 +76,62 @@ function About() {
           <div className='about__social-media'>
             <h3>Checkout My Social Media!</h3>
             <div className='about__social-media-icons'>
-              <a href="https://www.linkedin.com/in/m-adib-aulia-nurkhafif" className='btn' target='_blank'><BsLinkedin/><h4>Linked In</h4></a>
-              <a href="https://instagram.com/adib_nk?igshid=MmIzYWVlNDQ5Yg=="className='btn' target='_blank'><BsInstagram/><h4>Instagram</h4></a>
-              <a href="https://www.facebook.com/AdibNK11/"className='btn' target='_blank'><BsFacebook/><h4>Facebook</h4></a>
-              <a href="https://github.com/1Frazel"className='btn' target='_blank'><FaGithub/><h4>Github</h4></a>
+              <a
+                href="https://www.linkedin.com/in/m-adib-aulia-nurkhafif"
+                className='btn'
+                target='_blank'
+                rel="noopener noreferrer"
+                onClick={() =>
+                  trackEvent('social_click', {
+                    platform: 'linkedin',
+                    location: 'about',
+                  })
+                }
+              >
+                <BsLinkedin/><h4>Linked In</h4>
+              </a>
+              <a
+                href="https://instagram.com/adib_nk?igshid=MmIzYWVlNDQ5Yg=="
+                className='btn'
+                target='_blank'
+                rel="noopener noreferrer"
+                onClick={() =>
+                  trackEvent('social_click', {
+                    platform: 'instagram',
+                    location: 'about',
+                  })
+                }
+              >
+                <BsInstagram/><h4>Instagram</h4>
+              </a>
+              <a
+                href="https://www.facebook.com/AdibNK11/"
+                className='btn'
+                target='_blank'
+                rel="noopener noreferrer"
+                onClick={() =>
+                  trackEvent('social_click', {
+                    platform: 'facebook',
+                    location: 'about',
+                  })
+                }
+              >
+                <BsFacebook/><h4>Facebook</h4>
+              </a>
+              <a
+                href="https://github.com/1Frazel"
+                className='btn'
+                target='_blank'
+                rel="noopener noreferrer"
+                onClick={() =>
+                  trackEvent('social_click', {
+                    platform: 'github',
+                    location: 'about',
+                  })
+                }
+              >
+                <FaGithub/><h4>Github</h4>
+              </a>
             </div>
           </div>
         </div>
@@ -82,4 +140,4 @@ function About() {
   )
 }
 
-export default About 
+export default About

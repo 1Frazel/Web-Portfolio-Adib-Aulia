@@ -3,10 +3,11 @@ import './header.css'
 import CTA from './CTA'
 import ME from '../../assets/adib.png'
 import HeaderSocials from './HeaderSocials'
+import { trackEvent } from '../../utils/analytics'
 
 function Header({ onNavigateUiUx }) {
   return (
-    <header>
+    <header id="home">
       <div className="container header__container">
         <h5>Hello I'm</h5>
         <h1>M. Adib Aulia Nurkhafif</h1>
@@ -20,7 +21,19 @@ function Header({ onNavigateUiUx }) {
           <img src={ME} alt="me" />
         </div>
 
-        <a href="#contact" className='scroll__down'>Scroll Down</a>
+        <a
+          href="#contact"
+          className='scroll__down'
+          onClick={() =>
+            trackEvent('cta_click', {
+              label: 'Scroll Down',
+              location: 'main_hero',
+              target_section: '#contact',
+            })
+          }
+        >
+          Scroll Down
+        </a>
       </div>
     </header>
   )

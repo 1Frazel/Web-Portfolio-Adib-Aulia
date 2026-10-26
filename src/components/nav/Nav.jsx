@@ -7,6 +7,7 @@ import { GoGear } from 'react-icons/go';
 import { TbCertificate } from "react-icons/tb";
 import { FaRegFolder } from "react-icons/fa";
 import { BsPencilSquare } from "react-icons/bs";
+import { trackEvent } from '../../utils/analytics';
 
 function Nav() {
   const [activeNav, setActiveNav] = useState('#');
@@ -77,33 +78,42 @@ function Nav() {
     };
   }, []);
 
+  const handleNavClick = (sectionHash, sectionLabel) => {
+    setActiveNav(sectionHash);
+    trackEvent('nav_jump_click', {
+      target_section: sectionHash,
+      label: sectionLabel,
+      location: 'floating_navbar',
+    });
+  };
+
   return (
     <nav>
-      <a href="#" onClick={() => setActiveNav('#')} className={activeNav === '#' ? 'active' : ''}>
+      <a href="#" onClick={() => handleNavClick('#', 'Home')} className={activeNav === '#' ? 'active' : ''}>
         <AiOutlineHome />
       </a>
-      <a href="#about" onClick={() => setActiveNav('#about')} className={activeNav === '#about' ? 'active' : ''}>
+      <a href="#about" onClick={() => handleNavClick('#about', 'About')} className={activeNav === '#about' ? 'active' : ''}>
         <BiUser />
       </a>
-      <a href="#experience" onClick={() => setActiveNav('#experience')} className={activeNav === '#experience' ? 'active' : ''}>
+      <a href="#experience" onClick={() => handleNavClick('#experience', 'Skills')} className={activeNav === '#experience' ? 'active' : ''}>
         <AiOutlineUnorderedList />
       </a>
-      <a href="#certificates" onClick={() => setActiveNav('#certificates')} className={activeNav === '#certificates' ? 'active' : ''}>
+      <a href="#certificates" onClick={() => handleNavClick('#certificates', 'Certifications')} className={activeNav === '#certificates' ? 'active' : ''}>
         <TbCertificate />
       </a>
-      <a href="#service" onClick={() => setActiveNav('#service')} className={activeNav === '#service' ? 'active' : ''}>
+      <a href="#service" onClick={() => handleNavClick('#service', 'Services')} className={activeNav === '#service' ? 'active' : ''}>
         <GoGear />
       </a>
-      <a href="#portfolio" onClick={() => setActiveNav('#portfolio')} className={activeNav === '#portfolio' ? 'active' : ''}>
+      <a href="#portfolio" onClick={() => handleNavClick('#portfolio', 'Professional Experiences')} className={activeNav === '#portfolio' ? 'active' : ''}>
         <BsBookmarkStar />
       </a>
-      <a href="#project" onClick={() => setActiveNav('#project')} className={activeNav === '#project' ? 'active' : ''}>
+      <a href="#project" onClick={() => handleNavClick('#project', 'Projects')} className={activeNav === '#project' ? 'active' : ''}>
         <FaRegFolder />
       </a>
-      <a href="#creation" onClick={() => setActiveNav('#creation')} className={activeNav === '#creation' ? 'active' : ''}>
+      <a href="#creation" onClick={() => handleNavClick('#creation', 'Creations')} className={activeNav === '#creation' ? 'active' : ''}>
         <BsPencilSquare />
       </a>
-      <a href="#contact" onClick={() => setActiveNav('#contact')} className={activeNav === '#contact' ? 'active' : ''}>
+      <a href="#contact" onClick={() => handleNavClick('#contact', 'Contact')} className={activeNav === '#contact' ? 'active' : ''}>
         <BiPhoneCall />
       </a>
     </nav>

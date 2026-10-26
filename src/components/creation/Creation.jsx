@@ -13,6 +13,11 @@ import buku6 from '../../assets/Subnetting Modul.pdf'
 
 import { Pagination } from 'swiper/modules'
 import { Swiper, SwiperSlide } from 'swiper/react'
+import {
+  trackEvent,
+  useCarouselSlideTracker,
+  useSectionReadingTracker,
+} from '../../utils/analytics'
 
 import 'swiper/css'
 import 'swiper/css/pagination'
@@ -47,6 +52,38 @@ const data = [
 
 function creation()  {
     const [swiperInstance, setSwiperInstance] = useState(null)
+    const [activeIndex, setActiveIndex] = useState(0)
+
+    useSectionReadingTracker({
+      sectionId: 'creation',
+      sectionName: 'Creations',
+    })
+
+    useCarouselSlideTracker({
+      sectionId: 'creation',
+      category: 'creation',
+      items: data,
+      activeIndex,
+      engagedThresholdSec: 5,
+    })
+
+    const handlePrev = () => {
+      trackEvent('carousel_nav_click', {
+        carousel: 'creations',
+        direction: 'prev',
+        current_slide_title: data[activeIndex]?.title,
+      })
+      swiperInstance?.slidePrev()
+    }
+
+    const handleNext = () => {
+      trackEvent('carousel_nav_click', {
+        carousel: 'creations',
+        direction: 'next',
+        current_slide_title: data[activeIndex]?.title,
+      })
+      swiperInstance?.slideNext()
+    }
 
     return (
       <section id='creation'>
@@ -65,11 +102,12 @@ function creation()  {
           clickable:true
         }}
         onSwiper={setSwiperInstance}
+        onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
         modules={[Pagination]}
         className="container creation__container">
           <SwiperNav
-            onPrev={() => swiperInstance?.slidePrev()}
-            onNext={() => swiperInstance?.slideNext()}
+            onPrev={handlePrev}
+            onNext={handleNext}
             slot="container-start"
           />
           {
@@ -83,7 +121,18 @@ function creation()  {
                     <h3 className='creation__detail-title'>{title}</h3>
                     <p className='creation__detail-desc'>{desc}</p>
                     <div className='creation__detail-btn'>
-                        <a href={buku} className='btn'>Download Book</a>
+                        <a
+                          href={buku}
+                          className='btn'
+                          onClick={() =>
+                            trackEvent('book_download_click', {
+                              book_title: title,
+                              slide_index: index,
+                            })
+                          }
+                        >
+                          Download Book
+                        </a>
                     </div>
                   </div>
                 </SwiperSlide>

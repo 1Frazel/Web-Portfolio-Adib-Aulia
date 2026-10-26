@@ -1,8 +1,14 @@
 import React from 'react'
 import './certificates.css'
 import { FaDotCircle } from "react-icons/fa";
+import { useSectionReadingTracker } from '../../utils/analytics'
 
 function Certificates () {
+    useSectionReadingTracker({
+        sectionId: 'certificates',
+        sectionName: 'Certifications',
+    })
+
     return(
         <section id='certificates'>
             <h5>My Accomplishment</h5>

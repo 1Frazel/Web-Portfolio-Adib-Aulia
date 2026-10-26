@@ -14,6 +14,11 @@ import IMG9 from '../../assets/Project-9.png'
 
 import { Pagination } from 'swiper/modules';
 import { Swiper, SwiperSlide } from 'swiper/react';
+import {
+  trackEvent,
+  useCarouselSlideTracker,
+  useSectionReadingTracker,
+} from '../../utils/analytics';
 
 import 'swiper/css';
 import 'swiper/css/pagination';
@@ -99,6 +104,38 @@ const data = [
 
 function Portfolio() {
   const [swiperInstance, setSwiperInstance] = useState(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useSectionReadingTracker({
+    sectionId: 'portfolio',
+    sectionName: 'Professional Experiences',
+  });
+
+  useCarouselSlideTracker({
+    sectionId: 'portfolio',
+    category: 'experience',
+    items: data,
+    activeIndex,
+    engagedThresholdSec: 6,
+  });
+
+  const handlePrev = () => {
+    trackEvent('carousel_nav_click', {
+      carousel: 'professional_experiences',
+      direction: 'prev',
+      current_slide_title: data[activeIndex]?.title,
+    });
+    swiperInstance?.slidePrev();
+  };
+
+  const handleNext = () => {
+    trackEvent('carousel_nav_click', {
+      carousel: 'professional_experiences',
+      direction: 'next',
+      current_slide_title: data[activeIndex]?.title,
+    });
+    swiperInstance?.slideNext();
+  };
 
   return (
     <section id='portfolio'>
@@ -113,12 +150,13 @@ function Portfolio() {
           clickable: true,
         }}
         onSwiper={setSwiperInstance}
+        onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
         modules={[Pagination]}
 
         className="container portfolio__container">
           <SwiperNav
-            onPrev={() => swiperInstance?.slidePrev()}
-            onNext={() => swiperInstance?.slideNext()}
+            onPrev={handlePrev}
+            onNext={handleNext}
             slot="container-start"
           />
           {

@@ -11,6 +11,7 @@ import Creation from './components/creation/Creation'
 import Contact from './components/contact/Contact'
 import Footer from './components/footer/Footer'
 import UiUxPage from './components/uiux/UiUxPage'
+import { trackEvent, trackPageView, useScrollDepthTracker } from './utils/analytics'
 
 const checkIsUiUxRoute = () => {
   const path = window.location.pathname.replace(/\/+$/, '').toLowerCase()
@@ -19,6 +20,13 @@ const checkIsUiUxRoute = () => {
 
 const App = () => {
   const [isUiUxRoute, setIsUiUxRoute] = useState(checkIsUiUxRoute)
+  const currentPageName = isUiUxRoute ? 'ui-ux' : 'main'
+
+  useScrollDepthTracker(currentPageName)
+
+  useEffect(() => {
+    trackPageView(currentPageName)
+  }, [currentPageName])
 
   useEffect(() => {
     const handlePopState = () => {
@@ -32,12 +40,22 @@ const App = () => {
     const base = import.meta.env.BASE_URL || '/'
     const targetUrl = `${base.replace(/\/+$/, '')}/ui-ux`
     window.history.pushState({}, '', targetUrl)
+    trackEvent('portfolio_mode_switch', {
+      from_page: 'main',
+      to_page: 'ui-ux',
+      trigger: 'main_hero_cta',
+    })
     setIsUiUxRoute(true)
   }
 
   const navigateToMain = () => {
     const base = import.meta.env.BASE_URL || '/'
     window.history.pushState({}, '', base)
+    trackEvent('portfolio_mode_switch', {
+      from_page: 'ui-ux',
+      to_page: 'main',
+      trigger: 'uiux_topbar_switch',
+    })
     setIsUiUxRoute(false)
   }
 
