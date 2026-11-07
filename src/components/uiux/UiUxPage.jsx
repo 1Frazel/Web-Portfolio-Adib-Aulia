@@ -515,7 +515,7 @@ function UiUxPage({ onNavigateMain }) {
                 </div>
                 <div className="uiux-author-info">
                   <h2>M. Adib Aulia Nurkhafif</h2>
-                  <p>Kab. Batang, Indonesia (51252)</p>
+                  <p>West Jakarta, Indonesia (51252)</p>
                   <p>adibnk11@gmail.com • +62 822-4103-3809</p>
                 </div>
               </div>
